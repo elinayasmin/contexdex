@@ -111,13 +111,13 @@ def eval_end_to_end(retriever, classifier, questions, k):
     }
 
 
-def write_report(retrieval_rows, cls, e2e, n_questions):
+def write_report(retrieval_rows, cls, e2e, n_questions, n_chunks):
     lines = [
         "# ContexDex evaluation results",
         "",
         f"Run on {date.today()} · {n_questions} questions "
-        f"({cls['n']} answerable, {n_questions - cls['n']} unanswerable) · 102 chunks "
-        "from 4 GitLab handbook pages · CPU laptop",
+        f"({cls['n']} answerable, {n_questions - cls['n']} unanswerable) · {n_chunks} chunks "
+        "· CPU laptop",
         "",
         "## Retrieval (answerable questions)",
         "",
@@ -180,7 +180,7 @@ def main():
             print(f"  k={k}: accuracy {r['accuracy']:.0%}, refusals {r['refusal']:.0%}, "
                   f"avg tokens {r['tokens']:.0f}, median total {r['total_s']:.1f} s")
 
-    write_report(retrieval_rows, cls, e2e, len(questions))
+    write_report(retrieval_rows, cls, e2e, len(questions), len(retriever.chunks))
 
 
 if __name__ == "__main__":

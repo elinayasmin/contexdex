@@ -12,12 +12,13 @@ Run:
 import argparse
 import os
 import re
+from collections import Counter
 from pathlib import Path
 
+import pymupdf
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 
 from db import get_conn
@@ -32,27 +33,52 @@ MIN_WORDS = 10        # drop fragments too short to be useful
 
 # ---------- loading: each loader returns a list of (section, text) ----------
 
-def looks_like_heading(line):
-    """Numbered ("2.1 Leave Policy") or ALL-CAPS short lines are treated as headings."""
-    line = line.strip()
-    if not line or len(line.split()) > 12:
+def looks_like_heading(text, size, body_size):
+    """A short line is a heading if its font is noticeably bigger than body text, or - for PDFs
+    that use one font size throughout - if it is ALL CAPS or multi-level numbered ("2.1 Leave").
+    Single-level numbers ("2. Click Save") are usually list steps, so they don't count."""
+    if len(text.split()) > 15 or text.endswith((".", ":", ",")):
         return False
-    return line.isupper() or bool(re.match(r"^\d+(\.\d+)*\.?\s+[A-Za-z]", line))
+    return (size >= body_size * 1.15
+            or (text.isupper() and len(text) > 3)
+            or bool(re.match(r"^\d+\.\d+(\.\d+)*\.?\s+[A-Za-z]", text)))
 
 
 def read_pdf(path):
+    # Collect every text line with its font size and page number.
+    lines = []
+    with pymupdf.open(path) as doc:
+        for page_no, page in enumerate(doc, start=1):
+            for block in page.get_text("dict")["blocks"]:
+                for line in block.get("lines", []):
+                    spans = [s for s in line["spans"] if s["text"].strip()]
+                    if spans:
+                        text = " ".join(s["text"].strip() for s in spans)
+                        lines.append((page_no, max(s["size"] for s in spans), text))
+    if not lines:
+        return []
+
+    # Body text size = the font size that covers the most characters.
+    chars_per_size = Counter()
+    for _, size, text in lines:
+        chars_per_size[round(size, 1)] += len(text)
+    body_size = chars_per_size.most_common(1)[0][0]
+
     sections, heading, buf, start_page = [], None, [], 1
-    for page_no, page in enumerate(PdfReader(path).pages, start=1):
-        for line in (page.extract_text() or "").splitlines():
-            if looks_like_heading(line):
-                if buf:
-                    sections.append((heading or f"page {start_page}", " ".join(buf)))
-                    buf = []
-                heading = line.strip()
-            elif line.strip():
-                if not buf:
-                    start_page = page_no
-                buf.append(line.strip())
+    prev_was_heading = False
+    for page_no, size, text in lines:
+        if looks_like_heading(text, size, body_size):
+            if buf:
+                sections.append((heading or f"page {start_page}", " ".join(buf)))
+                buf = []
+            # A heading that wraps onto a second line arrives as two heading lines - join them.
+            heading = f"{heading} {text}" if prev_was_heading else text
+            prev_was_heading = True
+        else:
+            prev_was_heading = False
+            if not buf:
+                start_page = page_no
+            buf.append(text)
     if buf:
         sections.append((heading or f"page {start_page}", " ".join(buf)))
     return sections

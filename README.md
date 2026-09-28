@@ -59,7 +59,10 @@ python ingest.py            # add or refresh sources
 python ingest.py --reset    # start from an empty table
 ```
 
-Each document is split into sections (PDF headings / HTML `h1`-`h3`), then into ~350-word chunks with 50-word overlap. Chunks are embedded with `all-MiniLM-L6-v2` and stored with their source, section and category.
+Each document is split into sections, then into ~350-word chunks with 50-word overlap. Chunks are embedded with `all-MiniLM-L6-v2` and stored with their source, section and category.
+
+- **PDFs** (PyMuPDF): a line is a heading if its font is noticeably larger than the body text (the font size covering the most characters), or if it is ALL CAPS / multi-level numbered (`2.1 Leave`). Single-level numbers (`2. Click Save`) are treated as list steps, and headings that wrap onto two lines are joined.
+- **Web pages** (BeautifulSoup): `h1`-`h3` are headings; navigation, headers and footers are stripped.
 
 ## Retrieval
 
