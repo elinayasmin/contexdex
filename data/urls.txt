@@ -1,0 +1,7 @@
+# One source per line: <category> <url>
+# GitLab's company handbook is public and reads like real enterprise docs - a good test corpus.
+# Open each link first to make sure it still exists, and swap in any pages you like.
+hr https://handbook.gitlab.com/handbook/people-group/time-off-and-absence/
+hr https://handbook.gitlab.com/handbook/people-group/offboarding/
+it https://handbook.gitlab.com/handbook/security/
+finance https://handbook.gitlab.com/handbook/finance/expenses/
