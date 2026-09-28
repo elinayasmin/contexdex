@@ -5,7 +5,7 @@ Run:
 
 Endpoints:
   GET  /health   -> checks the database and Ollama are reachable
-  POST /ask      -> {"question": "...", "k": 4, "category": "auto", "mode": "rerank"}
+  POST /ask      -> {"question": "...", "k": 2, "category": "auto", "mode": "rerank"}
                     only "question" is required
   POST /reload   -> rebuild the BM25 index and category centroids after running ingest.py
 """
@@ -49,7 +49,7 @@ def ask():
     if not question:
         return jsonify({"error": "'question' is required"}), 400
 
-    k = body.get("k", 4)
+    k = body.get("k", 2)   # k=2 matched k=4 accuracy at ~half the tokens (see eval/results.md)
     mode = body.get("mode", "rerank")
     category = body.get("category", "auto")
     if not isinstance(k, int) or not 1 <= k <= 10:

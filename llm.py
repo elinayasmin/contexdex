@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("question")
-    parser.add_argument("--k", type=int, default=4)
+    parser.add_argument("--k", type=int, default=2)
     args = parser.parse_args()
 
     retriever = Retriever()
